@@ -1,55 +1,39 @@
 ﻿#include <iostream>
+#include "Core/Mirror_RTTI.h"
+#include "Player.h"
 
-#include "Mirror_RTTI.h"
-
-
-struct Player {
-    int health;
-    float speed;
-};
-
-
-BEGIN_CLASS(Player)
-    REGISTER_FIELD(health)
-    REGISTER_FIELD(speed)
-END_CLASS(Player)
 
 int main() {
-    // Testing: 通过名字改field
-    Player p;
-    p.health = 100;
+    std::cout << "测试...\n";
 
-    SetProperty(&p, typeid(Player), "speed", 5.5f);
+    void *objPtr = CreateInstanceByName("Player");
 
-    float s = 0;
-    GetProperty(&p, typeid(Player), "speed", s);
-
-    std::cout << "通过反射读取的speed: " << s << "\n";
-    std::string str("Player");
-
-    // Testing：通过类的名字查到类信息
-    const ClassDescriptor *desc = ReflectionRegistry::Instance().GetClassByName(str);
-    if (desc) {
-        std::cout << "成功通过字符串 " << str << "查找到类信息！\n";
-        std::cout << "该类包含的字段数: " << desc->fields_map.size() << "\n";
-    }
-
-    // Testing: 动态创建对象
-    void *objPtr = CreateInstanceByName(str);
     if (objPtr) {
-        std::cout << "创建" << str << "成功...\n";
+        std::cout << "成功创建Player\n";
 
         SetProperty(objPtr, typeid(Player), "health", 999);
         SetProperty(objPtr, typeid(Player), "speed", 3.14f);
 
-        float s2 = 0;
-        GetProperty(objPtr, typeid(Player), "speed", s2);
-        std::cout << "动态读取的speed: " << s2 << "\n";
+        int h = 0;
+        float s = 0.0f;
+        GetProperty(objPtr, typeid(Player), "health", h);
+        GetProperty(objPtr, typeid(Player), "speed", s);
+
+        std::cout << "通过反射读取修改后的值: health = " << h << ", speed = " << s << "\n";
+
+        std::cout << "动态调用函数...\n";
+        std::vector<std::any> moveArgs = {10.5f, -2.0f};
+        InvokeMethod(objPtr, typeid(Player), "Move", moveArgs);
+
+        std::any result = InvokeMethod(objPtr, typeid(Player), "getHealth");
+        if (result.has_value()) {
+            std::cout << "通过反射获取到Health: " << std::any_cast<int>(result) << "\n";
+        }
 
         DestroyInstanceByName(objPtr, "Player");
-        objPtr = nullptr;
+        std::cout << "对象已销毁...\n";
     } else {
-        std::cout << "创建失败，未找到该类的注册信息。\n";
+        std::cerr << "[Error] 创建失败, 未能找到 Player 类的注册信息。\n";
     }
 
     return 0;
